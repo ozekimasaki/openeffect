@@ -11,6 +11,8 @@ members = [
     "crates/three-d",
     "crates/gpu",
     "crates/effects-distort-generate",
+    "crates/io-media",
+    "crates/render",
 ]
 
 [workspace.package]
