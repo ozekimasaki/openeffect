@@ -84,6 +84,32 @@ impl BlendMode {
         Self::LuminescentPremul,
     ];
 
+    /// 3D レイヤーでは Dissolve と Dancing Dissolve が効かない。
+    pub const fn ignored_on_3d(self) -> bool {
+        matches!(self, Self::Dissolve | Self::DancingDissolve)
+    }
+
+    pub const fn next(self) -> Self {
+        let index = self.index();
+        Self::ALL[(index + 1) % Self::ALL.len()]
+    }
+
+    pub const fn previous(self) -> Self {
+        let index = self.index();
+        Self::ALL[(index + Self::ALL.len() - 1) % Self::ALL.len()]
+    }
+
+    const fn index(self) -> usize {
+        let mut index = 0;
+        while index < Self::ALL.len() {
+            if Self::ALL[index] as u8 == self as u8 {
+                return index;
+            }
+            index += 1;
+        }
+        0
+    }
+
     pub const fn name(self) -> &'static str {
         match self {
             Self::Normal => "Normal",
