@@ -11,6 +11,7 @@ After Effects のプロジェクトを扱えるオープンソースのコンポ
 | `crates/effect-api` | パラメータ定義と、CPU / GPU の適用入口 |
 | `crates/ui-api` | ドック、パネル、コマンド、ショートカット、ヒストリ |
 | `crates/io-api` | フッテージ参照、未リンク、プロキシ、レンダーキューの出力 |
+| `crates/io-aep` | `.aep` / `.aepx` / `.aet` のチャンク読み書き |
 
 ```
 cargo check --workspace

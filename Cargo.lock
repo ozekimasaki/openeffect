@@ -17,6 +17,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-aep"
+version = "0.1.0"
+
+[[package]]
 name = "io-api"
 version = "0.1.0"
 dependencies = [
