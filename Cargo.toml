@@ -5,6 +5,7 @@ members = [
     "crates/eval",
     "crates/effect-api",
     "crates/ui-api",
+    "crates/ui",
     "crates/io-api",
 ]
 
