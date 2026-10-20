@@ -9,6 +9,7 @@ members = [
     "crates/io-api",
     "crates/io-aep",
     "crates/three-d",
+    "crates/gpu",
 ]
 
 [workspace.package]
