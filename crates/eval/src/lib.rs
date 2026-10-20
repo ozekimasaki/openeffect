@@ -3,10 +3,16 @@
 #![forbid(unsafe_code)]
 
 pub mod blend;
+pub mod blend_pixel;
 pub mod collapse;
+pub mod color_space;
+pub mod edit;
 pub mod input;
+pub mod interpolate;
 pub mod motion_blur;
 pub mod parent;
+pub mod picture;
+pub mod render;
 pub mod sampler;
 pub mod track_matte;
 
