@@ -19,6 +19,7 @@ members = [
     "crates/script",
     "crates/tools",
     "crates/expr",
+    "crates/app",
 ]
 
 [workspace.package]

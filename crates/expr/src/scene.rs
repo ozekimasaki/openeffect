@@ -200,15 +200,9 @@ impl Scene {
         color: Rgba,
     ) -> ItemId {
         let id = self.project.alloc_item();
-        self.project.add_footage(Footage {
-            id,
-            name: name.into(),
-            width,
-            height,
-            duration: Time::from_seconds(1.0),
-            frame_rate: 25.0,
-            kind: FootageKind::Solid { color },
-        });
+        let mut footage = Footage::file(id, name, width, height, Time::from_seconds(1.0), 25.0);
+        footage.kind = FootageKind::Solid { color };
+        self.project.add_footage(footage);
         id
     }
 

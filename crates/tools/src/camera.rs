@@ -984,17 +984,11 @@ impl CameraTracker {
         };
         let size = self.target_size.unwrap_or(100.0).round().max(1.0) as u32;
         let item = ids.item();
-        project.add_footage(Footage {
-            id: item,
-            name: "平面".into(),
-            width: size,
-            height: size,
-            duration: Time::from_seconds(1.0),
-            frame_rate: 24.0,
-            kind: FootageKind::Solid {
-                color: Rgba::white(),
-            },
-        });
+        let mut footage = Footage::file(item, "平面", size, size, Time::from_seconds(1.0), 24.0);
+        footage.kind = FootageKind::Solid {
+            color: Rgba::white(),
+        };
+        project.add_footage(footage);
         let comp = project.composition_mut(comp_id).expect("comp");
         let id = ids.layer();
         let mut layer = Layer::new(id, "平面 1", LayerKind::Solid { source: item });
@@ -1051,17 +1045,18 @@ impl CameraTracker {
         ids: &mut Ids,
     ) -> Result<(), ToolError> {
         let item = ids.item();
-        project.add_footage(Footage {
-            id: item,
-            name: "シャドウキャッチャー".into(),
-            width: self.image_width,
-            height: self.image_height,
-            duration: Time::from_seconds(1.0),
-            frame_rate: 24.0,
-            kind: FootageKind::Solid {
-                color: Rgba::white(),
-            },
-        });
+        let mut footage = Footage::file(
+            item,
+            "シャドウキャッチャー",
+            self.image_width,
+            self.image_height,
+            Time::from_seconds(1.0),
+            24.0,
+        );
+        footage.kind = FootageKind::Solid {
+            color: Rgba::white(),
+        };
+        project.add_footage(footage);
         let comp = project
             .composition_mut(comp_id)
             .ok_or_else(|| ToolError::new("コンポジションがない"))?;
@@ -1470,7 +1465,10 @@ mod tests {
         assert_eq!((footage.width, footage.height), (64, 48));
         match footage.kind {
             FootageKind::Solid { color } => assert_eq!(color, Rgba::white()),
-            FootageKind::File | FootageKind::Placeholder => panic!("solid"),
+            FootageKind::File
+            | FootageKind::Placeholder
+            | FootageKind::OutputPlaceholder { .. }
+            | FootageKind::Photoshop => panic!("solid"),
         }
         let comp = project.composition(comp_id).unwrap();
         let catcher = comp
