@@ -12,6 +12,7 @@ After Effects のプロジェクトを扱えるオープンソースのコンポ
 | `crates/ui-api` | ドック、パネル、コマンド、ショートカット、ヒストリ |
 | `crates/io-api` | フッテージ参照、未リンク、プロキシ、レンダーキューの出力 |
 | `crates/io-aep` | `.aep` / `.aepx` / `.aet` のチャンク読み書き |
+| `crates/three-d` | カメラ、ライト、マテリアル、クラシック 3D と Advanced 3D の計算 |
 
 ```
 cargo check --workspace

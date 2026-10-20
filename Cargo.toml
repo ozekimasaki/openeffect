@@ -8,6 +8,7 @@ members = [
     "crates/ui",
     "crates/io-api",
     "crates/io-aep",
+    "crates/three-d",
 ]
 
 [workspace.package]
