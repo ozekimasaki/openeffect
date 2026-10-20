@@ -1,0 +1,12 @@
+[package]
+name = "render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OpenEffect preview range, render settings, and output modules"
+
+[dependencies]
+model = { path = "../model" }
+io-api = { path = "../io-api" }
+io-media = { path = "../io-media" }
