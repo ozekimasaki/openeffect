@@ -6,6 +6,7 @@ members = [
     "crates/effect-api",
     "crates/ui-api",
     "crates/io-api",
+    "crates/effects-sim-time",
 ]
 
 [workspace.package]
