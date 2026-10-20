@@ -18,6 +18,7 @@ members = [
     "crates/effects-sim-time",
     "crates/script",
     "crates/tools",
+    "crates/expr",
 ]
 
 [workspace.package]

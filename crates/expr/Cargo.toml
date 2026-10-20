@@ -1,0 +1,13 @@
+[package]
+name = "expr"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OpenEffect expression engine"
+
+[dependencies]
+model = { path = "../model" }
+
+[dev-dependencies]
+model = { path = "../model" }
