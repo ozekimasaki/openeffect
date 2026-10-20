@@ -13,6 +13,7 @@ After Effects のプロジェクトを扱えるオープンソースのコンポ
 | `crates/io-api` | フッテージ参照、未リンク、プロキシ、レンダーキューの出力 |
 | `crates/io-aep` | `.aep` / `.aepx` / `.aet` のチャンク読み書き |
 | `crates/three-d` | カメラ、ライト、マテリアル、クラシック 3D と Advanced 3D の計算 |
+| `crates/script` | `app.project` のスクリプティング、エフェクト用 C API、テンプレートの読み書き |
 
 ```
 cargo check --workspace

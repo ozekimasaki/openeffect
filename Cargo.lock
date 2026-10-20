@@ -966,6 +966,17 @@ dependencies = [
  "ui-api",
 ]
 [[package]]
+name = "script"
+version = "0.1.0"
+dependencies = [
+ "effect-api",
+ "eval",
+ "io-api",
+ "model",
+ "ui-api",
+]
+
+[[package]]
 name = "ui-api"
 version = "0.1.0"
 [[package]]
