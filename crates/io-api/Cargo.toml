@@ -1,0 +1,10 @@
+[package]
+name = "io-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OpenEffect footage links and render outputs"
+
+[dependencies]
+model = { path = "../model" }
