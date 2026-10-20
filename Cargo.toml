@@ -5,7 +5,21 @@ members = [
     "crates/eval",
     "crates/effect-api",
     "crates/ui-api",
+    "crates/ui",
     "crates/io-api",
+    "crates/io-aep",
+    "crates/three-d",
+    "crates/gpu",
+    "crates/effects-distort-generate",
+    "crates/io-media",
+    "crates/render",
+    "crates/effects-key-stylize",
+    "crates/effects-blur-color",
+    "crates/effects-sim-time",
+    "crates/script",
+    "crates/tools",
+    "crates/expr",
+    "crates/app",
 ]
 
 [workspace.package]

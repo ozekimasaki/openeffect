@@ -1,0 +1,13 @@
+[package]
+name = "script"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+model = { path = "../model" }
+eval = { path = "../eval" }
+effect-api = { path = "../effect-api" }
+io-api = { path = "../io-api" }
+ui-api = { path = "../ui-api" }
