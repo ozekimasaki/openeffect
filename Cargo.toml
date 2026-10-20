@@ -17,6 +17,7 @@ members = [
     "crates/effects-blur-color",
     "crates/effects-sim-time",
     "crates/script",
+    "crates/tools",
 ]
 
 [workspace.package]
