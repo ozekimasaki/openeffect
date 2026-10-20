@@ -6,6 +6,8 @@ members = [
     "crates/effect-api",
     "crates/ui-api",
     "crates/io-api",
+    "crates/io-media",
+    "crates/render",
 ]
 
 [workspace.package]
