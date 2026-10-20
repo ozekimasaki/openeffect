@@ -55,3 +55,45 @@ impl Default for Transform3d {
         Self::identity()
     }
 }
+
+fn add3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+fn sub3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+impl Transform3d {
+    /// 親が無いときの見た目の位置は、自分の位置そのもの。
+    pub fn world_position(self, parent: Option<Transform3d>) -> [f64; 3] {
+        match parent {
+            None => self.position,
+            Some(parent) => add3(parent.position, self.position),
+        }
+    }
+
+    /// 見た目を保って親に付ける。以降の親の移動だけを受ける。
+    pub fn parent_keeping_world(self, parent: Transform3d) -> Self {
+        let mut child = self;
+        child.position = sub3(self.position, parent.position);
+        child
+    }
+
+    /// Alt で親に付ける。ローカル値は残し、見た目は親の分だけ飛ぶ。
+    pub fn parent_taking_transform(self, _parent: Transform3d) -> Self {
+        self
+    }
+
+    /// 親を外しても見た目を保つ。
+    pub fn unparent_keeping_world(self, parent: Transform3d) -> Self {
+        let mut child = self;
+        child.position = add3(parent.position, self.position);
+        child
+    }
+
+    /// Alt で親を外す。ローカル値をそのまま世界の位置にするので飛ぶ。
+    pub fn unparent_releasing(self, _parent: Transform3d) -> Self {
+        self
+    }
+}
