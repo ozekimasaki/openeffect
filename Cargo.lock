@@ -229,6 +229,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "effects-sim-time"
+version = "0.1.0"
+dependencies = [
+ "effect-api",
+ "model",
+]
+
+[[package]]
 name = "eval"
 version = "0.1.0"
 dependencies = [
