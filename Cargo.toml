@@ -13,6 +13,7 @@ members = [
     "crates/effects-distort-generate",
     "crates/io-media",
     "crates/render",
+    "crates/effects-key-stylize",
 ]
 
 [workspace.package]
