@@ -2,7 +2,7 @@
 
 use ui_api::{Axis, Chord, Command, CommandId, Dock, DockNode, PanelId};
 
-use crate::catalog::{self, ToolId};
+use crate::catalog::{self, Kind, ToolId};
 use crate::dock;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,15 +15,13 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    /// データにあるパネル一つを開いた配置。
+    /// プロジェクトパネルを開いた配置。
     pub fn standard() -> Self {
-        let panel = catalog::panels()[0].id.clone();
-        let active_tool = catalog::tools()[0].id.clone();
         Self {
-            dock: Dock::new(Dock::tabs(vec![panel])),
+            dock: Dock::new(Dock::tabs(vec![PanelId::new(catalog::PROJECT)])),
             maximized: None,
             restore: None,
-            active_tool,
+            active_tool: ToolId::new(catalog::SELECTION),
             last_command: None,
         }
     }
@@ -142,14 +140,57 @@ impl Workspace {
         true
     }
 
-    /// 登録されたコマンドを受ける。ダイアログは出さない。
+    /// 登録されたコマンドを受ける。ダイアログもウィンドウも開かない。
     pub fn invoke(&mut self, id: &CommandId) -> Option<Command> {
-        let command = catalog::commands()
-            .into_iter()
-            .find(|command| &command.id == id)?;
+        let command = catalog::command(id)?;
+        self.apply_known(id);
         self.select_matching_tool(id);
         self.last_command = Some(command.id.clone());
         Some(command)
+    }
+
+    fn apply_known(&mut self, id: &CommandId) {
+        if let Some(window) = catalog::panel_windows()
+            .iter()
+            .find(|window| window.open_command == id.as_str())
+        {
+            self.toggle_panel(&window.panel.id);
+            return;
+        }
+        let Some(check) = catalog::checks()
+            .iter()
+            .find(|check| check.id == id.as_str())
+        else {
+            return;
+        };
+        if check.kind != Kind::Dock {
+            return;
+        }
+        let active = self.active_panel().cloned();
+        match check.title {
+            "フローティング" => {
+                if let Some(panel) = active {
+                    self.float_panel(&panel);
+                }
+            }
+            "フレームをフローティング" => {
+                if let Some(panel) = active {
+                    self.float_frame(&panel);
+                }
+            }
+            "パネルを最大化" | "タブのダブルクリックで最大化" => {
+                if let Some(panel) = active {
+                    self.toggle_maximized(&panel);
+                }
+            }
+            "パネルを閉じるボタン" => {
+                if let Some(panel) = active {
+                    self.close_panel(&panel);
+                }
+            }
+            "標準ワークスペースへリセット" => self.reset(),
+            _ => {}
+        }
     }
 
     pub fn invoke_chord(&mut self, chord: &Chord) -> Option<Command> {
@@ -212,7 +253,15 @@ mod tests {
     use crate::ToolId;
 
     fn project_id() -> PanelId {
-        catalog::panels()[0].id.clone()
+        PanelId::new(catalog::PROJECT)
+    }
+
+    fn check_id(title: &str) -> CommandId {
+        let check = catalog::checks()
+            .iter()
+            .find(|check| check.title == title)
+            .unwrap_or_else(|| panic!("missing {title}"));
+        CommandId::new(check.id)
     }
 
     fn ctrl_alt_n() -> Chord {
@@ -341,5 +390,49 @@ mod tests {
         workspace.reset();
         assert_eq!(panel_ids(&workspace.dock().root).as_slice(), &[host]);
         assert!(workspace.maximized().is_none());
+    }
+
+    #[test]
+    fn every_check_invokes_without_a_window() {
+        let mut workspace = Workspace::standard();
+        assert_eq!(catalog::checks().len(), 1090);
+        for check in catalog::checks() {
+            let command = workspace
+                .invoke(&CommandId::new(check.id))
+                .unwrap_or_else(|| panic!("missing {}", check.title));
+            assert_eq!(command.id.as_str(), check.id);
+            assert_eq!(command.title, check.title);
+        }
+    }
+
+    #[test]
+    fn window_and_dock_commands_change_the_layout() {
+        let mut workspace = Workspace::standard();
+        let project = project_id();
+        workspace
+            .invoke(&check_id("パネルを最大化"))
+            .expect("maximize");
+        assert_eq!(workspace.maximized(), Some(&project));
+        workspace
+            .invoke(&check_id("標準ワークスペースへリセット"))
+            .expect("reset");
+        assert!(workspace.maximized().is_none());
+        assert_eq!(
+            panel_ids(&workspace.dock().root).as_slice(),
+            &[project.clone()]
+        );
+        workspace
+            .invoke(&check_id("フローティング"))
+            .expect("float");
+        match &workspace.dock().root {
+            DockNode::Floating { panels } => {
+                assert_eq!(panels.as_slice(), &[project.clone()]);
+            }
+            DockNode::Tabs { .. } | DockNode::Split { .. } => panic!("expected floating"),
+        }
+        workspace
+            .invoke(&check_id("プロジェクトパネルを開閉"))
+            .expect("toggle");
+        assert!(panel_ids(&workspace.dock().root).is_empty());
     }
 }
