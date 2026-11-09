@@ -14,12 +14,13 @@ After Effects のプロジェクトを扱えるオープンソースのコンポ
 | `crates/io-aep` | `.aep` / `.aepx` / `.aet` のチャンク読み書き |
 | `crates/three-d` | カメラ、ライト、マテリアル、クラシック 3D と Advanced 3D の計算 |
 | `crates/script` | `app.project` のスクリプティング、エフェクト用 C API、テンプレートの読み書き |
-| `crates/app` | 小さいコンポジションの評価、`.aep` / `.aepx` の往復、CPU 参照合成 |
-
-Windows の描画バックエンドは wgpu の DX12。
+| `crates/app` | 小さいコンポジションの評価、`.aep` / `.aepx` の往復、CPU 参照合成を窓に出す |
 
 ```
 cargo check --workspace
+cargo run -p app
 ```
+
+Windows の描画バックエンドは wgpu の DX12。
 
 ライセンスは Apache-2.0。

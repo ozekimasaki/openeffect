@@ -1,9 +1,12 @@
-//! ヘッドレスの結合。
+//! アプリの結合。
 //!
 //! コンポジションを作り、1 フレーム評価し、`.aep` と `.aepx` を往復し、
-//! GPU クレートの CPU 参照実装で合成する。ウィンドウは開かない。
+//! CPU 参照実装で合成する。`cargo run -p app` はその絵を winit の窓に出す。
+//! テストはウィンドウを開かない。
 
 #![forbid(unsafe_code)]
+
+mod present;
 
 use effect_api::Frame32;
 use eval::render::{render, Image, RenderPurpose};
@@ -12,6 +15,8 @@ use io_aep::{read_aep, read_aepx, write_aep, write_aepx, Chunk, Document, FourCc
 use model::{
     BitsPerChannel, Composition, Footage, FootageKind, Layer, LayerKind, Project, Rgba, Time,
 };
+
+pub use present::open_window;
 
 /// 4×2、24 fps、1 秒のコンポジションに赤い平面を 1 枚置く。
 pub fn small_composition() -> (Project, model::ItemId) {
@@ -26,7 +31,11 @@ pub fn small_composition() -> (Project, model::ItemId) {
     let comp_id = project.alloc_item();
     let mut composition = Composition::new(comp_id, "Small", 4, 2, 24.0, Time::from_seconds(1.0));
     let layer_id = project.alloc_layer();
-    let mut layer = Layer::new(layer_id, "Red Solid", LayerKind::Solid { source: footage_id });
+    let mut layer = Layer::new(
+        layer_id,
+        "Red Solid",
+        LayerKind::Solid { source: footage_id },
+    );
     layer.in_point = Time::ZERO;
     layer.out_point = composition.duration;
     composition.layers.push(layer);
@@ -133,7 +142,10 @@ mod tests {
         assert_eq!(utf8::as_str(&name), Some("Small"));
 
         let composited = composite_on_cpu(&image, project.bits_per_channel);
-        assert_eq!((composited.width, composited.height, composited.channels), (4, 2, 4));
+        assert_eq!(
+            (composited.width, composited.height, composited.channels),
+            (4, 2, 4)
+        );
         for chunk in composited.samples.chunks(4) {
             assert_eq!(chunk, &[1.0, 0.0, 0.0, 1.0]);
         }
@@ -147,6 +159,9 @@ mod tests {
                 }
             }
         }
-        panic!("missing chunk {}", std::str::from_utf8(id).unwrap_or("????"));
+        panic!(
+            "missing chunk {}",
+            std::str::from_utf8(id).unwrap_or("????")
+        );
     }
 }
