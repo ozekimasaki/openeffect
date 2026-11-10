@@ -1,0 +1,11 @@
+[package]
+name = "tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OpenEffect trackers, paint, puppet, rotoscope, and content-aware fill"
+
+[dependencies]
+model = { path = "../model" }
+effect-api = { path = "../effect-api" }

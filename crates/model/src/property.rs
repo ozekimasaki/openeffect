@@ -157,4 +157,78 @@ impl Property {
             PropertyBody::Group { .. } => false,
         }
     }
+
+    pub fn keyframes_mut(&mut self) -> Option<&mut Vec<Keyframe>> {
+        match &mut self.body {
+            PropertyBody::Value { keyframes, .. } => Some(keyframes),
+            PropertyBody::Group { .. } => None,
+        }
+    }
+
+    /// ストップウォッチを外す。キーは消え、値は尺を通して一定になる。
+    pub fn disable_stopwatch(&mut self) {
+        if let PropertyBody::Value {
+            keyframes,
+            expression,
+            expression_enabled,
+            ..
+        } = &mut self.body
+        {
+            keyframes.clear();
+            *expression = None;
+            *expression_enabled = false;
+        }
+    }
+
+    pub fn set_scalar(&mut self, value: f64) -> bool {
+        match &mut self.body {
+            PropertyBody::Value { value: slot, .. } => {
+                *slot = PropertyValue::Scalar(value);
+                true
+            }
+            PropertyBody::Group { .. } => false,
+        }
+    }
+
+    pub fn expression(&self) -> Option<&str> {
+        match &self.body {
+            PropertyBody::Value { expression, .. } => expression.as_deref(),
+            PropertyBody::Group { .. } => None,
+        }
+    }
+
+    pub fn set_expression(&mut self, source: Option<String>) {
+        if let PropertyBody::Value {
+            expression,
+            expression_enabled,
+            ..
+        } = &mut self.body
+        {
+            *expression_enabled = source.is_some();
+            *expression = source;
+        }
+    }
+
+    /// 位置を X と Y に分ける。Z は 3D のときだけ。
+    pub fn separate_dimensions(&mut self, x: Property, y: Property, z: Option<Property>) -> bool {
+        separate_from_value(self, x, y, z)
+    }
+}
+
+fn separate_from_value(property: &mut Property, mut x: Property, mut y: Property, z: Option<Property>) -> bool {
+    let current = property.base_value().cloned().unwrap_or(PropertyValue::Empty);
+    let (xv, yv, zv) = match current {
+        PropertyValue::TwoD([x, y]) => (x, y, 0.0),
+        PropertyValue::ThreeD([x, y, z]) => (x, y, z),
+        _ => return false,
+    };
+    let _ = x.set_scalar(xv);
+    let _ = y.set_scalar(yv);
+    let mut children = vec![x, y];
+    if let Some(mut z_prop) = z {
+        let _ = z_prop.set_scalar(zv);
+        children.push(z_prop);
+    }
+    property.body = PropertyBody::Group { children };
+    true
 }

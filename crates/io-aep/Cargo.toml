@@ -1,0 +1,9 @@
+[package]
+name = "io-aep"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = ".aep / .aepx / .aet の読み書き"
+
+[dependencies]

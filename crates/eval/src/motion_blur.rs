@@ -4,10 +4,10 @@ use model::{MotionBlurSettings, Time};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotionBlurSample {
     pub enabled: bool,
-    pub shutter_angle_degrees: f64,
+    pub shutter_angle_degrees: Option<f64>,
     pub shutter_phase_degrees: f64,
-    pub samples_per_frame: u32,
-    pub adaptive_sample_limit: u32,
+    pub samples_per_frame: Option<u32>,
+    pub adaptive_sample_limit: Option<u32>,
 }
 
 impl MotionBlurSample {

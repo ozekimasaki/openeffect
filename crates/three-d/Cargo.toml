@@ -1,0 +1,10 @@
+[package]
+name = "three-d"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OpenEffect cameras, lights, materials, and 3D calculations"
+
+[dependencies]
+model = { path = "../model" }
