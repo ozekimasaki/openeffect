@@ -78,11 +78,11 @@ impl App {
 
     pub(super) fn attach_camera_properties(&mut self, layer: LayerId) -> ScriptResult<()> {
         let group = self.add_root_group(layer, "Camera Options", "ADBE Camera Options Group", false)?;
-        self.add_number_child(group, "Zoom", "ADBE Camera Zoom", &["zoom"], 1000.0)?;
+        self.add_unconfirmed_number_child(group, "Zoom", "ADBE Camera Zoom", &["zoom"])?;
         self.add_bool_child(group, "Depth of Field", "ADBE Camera Depth of Field", &["depthOfField"], false)?;
-        self.add_number_child(group, "Focus Distance", "ADBE Camera Focus Distance", &["focusDistance"], 1000.0)?;
-        self.add_number_child(group, "Aperture", "ADBE Camera Aperture", &["aperture"], 10.0)?;
-        self.add_number_child(group, "Blur Level", "ADBE Camera Blur Level", &["blurLevel"], 100.0)?;
+        self.add_unconfirmed_number_child(group, "Focus Distance", "ADBE Camera Focus Distance", &["focusDistance"])?;
+        self.add_unconfirmed_number_child(group, "Aperture", "ADBE Camera Aperture", &["aperture"])?;
+        self.add_unconfirmed_number_child(group, "Blur Level", "ADBE Camera Blur Level", &["blurLevel"])?;
         self.ensure_3d_properties(layer)
     }
 
@@ -123,7 +123,7 @@ impl App {
             self.add_number_child(material, "Shininess", "ADBE Shininess Coefficient", &["shininess"], 5.0)?;
             self.add_bool_child(material, "Casts Shadows", "ADBE Casts Shadows", &["castsShadows"], false)?;
             self.add_number_child(material, "Light Transmission", "ADBE Light Transmission", &["lightTransmission"], 0.0)?;
-            self.add_number_child(material, "Metal", "ADBE Metal Coefficient", &["metal"], 0.0)?;
+            self.add_unconfirmed_number_child(material, "Metal", "ADBE Metal Coefficient", &["metal"])?;
         }
         Ok(())
     }
@@ -164,6 +164,26 @@ impl App {
         let layer = self.prop(parent)?.layer;
         let id = self.alloc_prop();
         let mut prop = value_prop(id, layer, name, match_name, PropertyValueType::OneD, Value::Scalar(value));
+        prop.parent = Some(parent);
+        prop.aliases = aliases.iter().map(|alias| (*alias).to_string()).collect();
+        prop.can_vary = true;
+        prop.can_set_expression = true;
+        self.props.insert(id, prop);
+        self.prop_mut(parent)?.children.push(id);
+        Ok(id)
+    }
+
+    /// 初期の数は要確認。空の値のままにする。
+    fn add_unconfirmed_number_child(
+        &mut self,
+        parent: PropertyId,
+        name: &str,
+        match_name: &str,
+        aliases: &[&str],
+    ) -> ScriptResult<PropertyId> {
+        let layer = self.prop(parent)?.layer;
+        let id = self.alloc_prop();
+        let mut prop = value_prop(id, layer, name, match_name, PropertyValueType::OneD, Value::Empty);
         prop.parent = Some(parent);
         prop.aliases = aliases.iter().map(|alias| (*alias).to_string()).collect();
         prop.can_vary = true;

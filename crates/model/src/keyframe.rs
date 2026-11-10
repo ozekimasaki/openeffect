@@ -27,16 +27,19 @@ pub enum Roving {
     RoveAcrossTime,
 }
 
-/// 入来または出発の速度と影響。影響の許容範囲は 0.1 から 100。
+/// 入来または出発の速度と影響。影響の許容範囲は 0.1 から 100。初期の影響は要確認。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct KeyframeEase {
     pub speed: f64,
-    pub influence: f64,
+    pub influence: Option<f64>,
 }
 
 impl KeyframeEase {
     pub const fn new(speed: f64, influence: f64) -> Self {
-        Self { speed, influence }
+        Self {
+            speed,
+            influence: Some(influence),
+        }
     }
 }
 
@@ -44,7 +47,7 @@ impl Default for KeyframeEase {
     fn default() -> Self {
         Self {
             speed: 0.0,
-            influence: 0.1,
+            influence: None,
         }
     }
 }
@@ -123,27 +126,26 @@ pub fn apply_roving(key: &mut Keyframe, command: RovingCommand) {
     }
 }
 
-/// 影響を許す範囲は既存の契約に合わせ、速度 0 で滑らかにする。
-/// Easy Ease が入れる影響の百分率そのものは要確認なので、許可範囲の端まで取る。
+/// 速度 0 で滑らかにする。Easy Ease が入れる影響の百分率は要確認。
 pub fn easy_ease(key: &mut Keyframe) {
     key.temporal_in = TemporalInterpolation::Bezier;
     key.temporal_out = TemporalInterpolation::Bezier;
     key.ease_in.speed = 0.0;
     key.ease_out.speed = 0.0;
-    key.ease_in.influence = 100.0;
-    key.ease_out.influence = 100.0;
+    key.ease_in.influence = None;
+    key.ease_out.influence = None;
 }
 
 pub fn easy_ease_in(key: &mut Keyframe) {
     key.temporal_in = TemporalInterpolation::Bezier;
     key.ease_in.speed = 0.0;
-    key.ease_in.influence = 100.0;
+    key.ease_in.influence = None;
 }
 
 pub fn easy_ease_out(key: &mut Keyframe) {
     key.temporal_out = TemporalInterpolation::Bezier;
     key.ease_out.speed = 0.0;
-    key.ease_out.influence = 100.0;
+    key.ease_out.influence = None;
 }
 
 /// マーカーキーの値。

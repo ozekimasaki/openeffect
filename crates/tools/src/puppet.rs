@@ -34,7 +34,7 @@ pub struct Pin {
     pub position: [f64; 2],
     pub rotation: f64,
     pub scale: f64,
-    pub amount: f64,
+    pub amount: Option<f64>,
     pub range: Option<f64>,
     pub in_front: f64,
     pub position_keys: Vec<(f64, [f64; 2])>,
@@ -123,14 +123,8 @@ impl Puppet {
             position: at,
             rotation: 0.0,
             scale: 1.0,
-            amount: 1.0,
-            range: if self.engine == PuppetEngine::Legacy && kind == PinKind::Starch {
-                Some(20.0)
-            } else if kind == PinKind::Overlap {
-                Some(20.0)
-            } else {
-                None
-            },
+            amount: None,
+            range: None,
             in_front: if kind == PinKind::Overlap { 50.0 } else { 0.0 },
             position_keys: if kind == PinKind::Bend {
                 Vec::new()
@@ -207,8 +201,10 @@ impl Puppet {
         let mut total = 0.0;
         for pin in self.pins.iter().filter(|pin| pin.kind == PinKind::Overlap) {
             let dist = ((pin.rest[0] - point[0]).powi(2) + (pin.rest[1] - point[1]).powi(2)).sqrt();
-            if pin.range.map(|range| dist <= range).unwrap_or(true) {
-                total += pin.in_front;
+            if let Some(range) = pin.range {
+                if dist <= range {
+                    total += pin.in_front;
+                }
             }
         }
         total
@@ -274,7 +270,9 @@ impl Puppet {
                         }
                     };
                     if inside {
-                        pull += pin.amount;
+                        if let Some(amount) = pin.amount {
+                            pull += amount;
+                        }
                     }
                 }
                 pull = pull.max(0.0);
@@ -435,7 +433,7 @@ mod tests {
         loose.move_pin(pin, [30.0, 18.0], 1.0, false);
         let mut stiff = loose.clone();
         stiff.add_pin(PinKind::Starch, [12.0, 12.0], 0.0);
-        stiff.pins.last_mut().unwrap().amount = 8.0;
+        stiff.pins.last_mut().unwrap().amount = Some(8.0);
         stiff.deform();
         let corner = stiff
             .mesh
@@ -451,14 +449,14 @@ mod tests {
         let mut puppet = mesh();
         puppet.engine = PuppetEngine::Legacy;
         puppet.add_pin(PinKind::Starch, [16.0, 16.0], 0.0);
-        puppet.pins[0].amount = 2.0;
+        puppet.pins[0].amount = Some(2.0);
         puppet.pins[0].range = Some(30.0);
         puppet.add_pin(PinKind::Starch, [18.0, 16.0], 0.0);
-        puppet.pins[1].amount = -1.0;
+        puppet.pins[1].amount = Some(-1.0);
         puppet.pins[1].range = Some(30.0);
         let mut pull = 0.0;
         for pin in &puppet.pins {
-            pull += pin.amount;
+            pull += pin.amount.unwrap_or(0.0);
         }
         assert!(pull < 2.0);
         assert!(pull > 0.0);
@@ -470,7 +468,7 @@ mod tests {
         puppet.engine = PuppetEngine::Legacy;
         puppet.add_pin(PinKind::Starch, [12.0, 12.0], 0.0);
         puppet.pins[0].range = Some(6.0);
-        puppet.pins[0].amount = 4.0;
+        puppet.pins[0].amount = Some(4.0);
         let inside = ((12.0 - 12.0_f64).powi(2) + (12.0 - 12.0_f64).powi(2)).sqrt() <= 6.0;
         let outside = ((28.0 - 12.0_f64).powi(2) + (24.0 - 12.0_f64).powi(2)).sqrt() > 6.0;
         assert!(inside);

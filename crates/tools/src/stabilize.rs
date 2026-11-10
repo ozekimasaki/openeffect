@@ -221,8 +221,11 @@ impl WarpStabilizer {
             return vec![[0.0, 0.0]; raw.len()];
         }
         let smoothness = self.smoothness.unwrap_or(0.0);
-        let mix = self.less_crop.unwrap_or(100.0) / 100.0;
         let gentle = smooth_points(&raw, smoothness);
+        let Some(less_crop) = self.less_crop else {
+            return gentle;
+        };
+        let mix = less_crop / 100.0;
         let heavy = smooth_points(&raw, smoothness * (1.0 + (1.0 - mix).max(0.0)));
         gentle
             .into_iter()
@@ -267,8 +270,10 @@ impl WarpStabilizer {
         let remain_w = (width - 2.0 * crop).max(1.0);
         let remain_h = (height - 2.0 * crop).max(1.0);
         let needed = (usable_w / remain_w).max(usable_h / remain_h);
-        let cap = self.max_scale.unwrap_or(400.0) / 100.0;
-        needed.min(cap) * 100.0
+        let Some(max_scale) = self.max_scale else {
+            return needed * 100.0;
+        };
+        needed.min(max_scale / 100.0) * 100.0
     }
 
     pub fn render_scale(&self, width: f64, height: f64) -> f64 {
@@ -276,8 +281,10 @@ impl WarpStabilizer {
             Framing::StabilizeOnly | Framing::SynthesizeEdges | Framing::StabilizeCrop => 1.0,
             Framing::StabilizeCropAutoScale => self.auto_scale_percent(width, height) / 100.0,
         };
-        let extra = self.additional_scale.unwrap_or(100.0) / 100.0;
-        base * extra
+        match self.additional_scale {
+            Some(percent) => base * percent / 100.0,
+            None => base,
+        }
     }
 
     pub fn render_frame(&self, frames: &[Raster], index: usize) -> Raster {

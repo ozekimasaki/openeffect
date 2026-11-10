@@ -299,21 +299,22 @@ pub struct GraphPropertyRef {
 }
 
 /// モーションブラーのシャッター。角度の単位は度。
+/// 角度、Samples Per Frame、Adaptive Sample Limit の初期値は要確認。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotionBlurSettings {
-    pub shutter_angle_degrees: f64,
+    pub shutter_angle_degrees: Option<f64>,
     pub shutter_phase_degrees: f64,
-    pub samples_per_frame: u32,
-    pub adaptive_sample_limit: u32,
+    pub samples_per_frame: Option<u32>,
+    pub adaptive_sample_limit: Option<u32>,
 }
 
 impl Default for MotionBlurSettings {
     fn default() -> Self {
         Self {
-            shutter_angle_degrees: 0.0,
+            shutter_angle_degrees: None,
             shutter_phase_degrees: 0.0,
-            samples_per_frame: 1,
-            adaptive_sample_limit: 1,
+            samples_per_frame: None,
+            adaptive_sample_limit: None,
         }
     }
 }

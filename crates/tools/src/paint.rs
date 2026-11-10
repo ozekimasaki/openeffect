@@ -88,11 +88,11 @@ pub struct Stroke {
     pub flow: f64,
     pub blend: PaintBlend,
     pub channel: PaintChannel,
-    pub diameter: f64,
+    pub diameter: Option<f64>,
     pub angle: f64,
-    pub roundness: f64,
-    pub hardness: f64,
-    pub spacing: Spacing,
+    pub roundness: Option<f64>,
+    pub hardness: Option<f64>,
+    pub spacing: Option<Spacing>,
     pub eraser: Option<EraserTarget>,
     pub clone: Option<CloneStamp>,
     pub end_keys: Vec<(f64, f64)>,
@@ -423,11 +423,11 @@ impl PaintState {
             flow: self.flow.unwrap_or(1.0),
             blend: self.blend.unwrap_or(PaintBlend::Normal),
             channel: self.channel.unwrap_or(PaintChannel::Color),
-            diameter: self.diameter.unwrap_or(8.0),
+            diameter: self.diameter,
             angle: self.angle.unwrap_or(0.0),
-            roundness: self.roundness.unwrap_or(100.0).clamp(0.0, 100.0),
-            hardness: self.hardness.unwrap_or(100.0),
-            spacing: self.spacing.unwrap_or(Spacing::Percent(25.0)),
+            roundness: self.roundness.map(|value| value.clamp(0.0, 100.0)),
+            hardness: self.hardness,
+            spacing: self.spacing,
             eraser: self.eraser,
             clone: if self.tool == PaintToolKind::Clone {
                 Some(CloneStamp {
@@ -599,11 +599,14 @@ fn stamps(stroke: &Stroke) -> Vec<StrokePoint> {
     } else {
         1.0
     };
+    let (Some(diameter), Some(spacing)) = (stroke.diameter, stroke.spacing) else {
+        return Vec::new();
+    };
     let limit = ((stroke.points.len() as f64) * end).ceil() as usize;
     let points = &stroke.points[..limit.min(stroke.points.len())];
-    match stroke.spacing {
+    match spacing {
         Spacing::Percent(percent) => {
-            let gap = (stroke.diameter * percent / 100.0).max(0.5);
+            let gap = (diameter * percent / 100.0).max(0.5);
             let mut out = vec![points[0]];
             let mut carried = 0.0;
             for window in points.windows(2) {
@@ -710,13 +713,18 @@ fn stamp_stroke(
 }
 
 fn stamp(paint: &mut Raster, point: &StrokePoint, stroke: &Stroke, color: [f32; 4]) {
+    let (Some(diameter), Some(roundness), Some(hardness)) =
+        (stroke.diameter, stroke.roundness, stroke.hardness)
+    else {
+        return;
+    };
     let size_input = point.pressure;
-    let diameter = stroke.diameter * size_input.max(0.05);
+    let diameter = diameter * size_input.max(0.05);
     let radius = diameter * 0.5;
-    let roundness = (stroke.roundness / 100.0).clamp(0.0, 1.0);
+    let roundness = (roundness / 100.0).clamp(0.0, 1.0);
     let angle = stroke.angle.to_radians();
     let (s, c) = angle.sin_cos();
-    let hardness = (stroke.hardness / 100.0).clamp(0.0, 1.0);
+    let hardness = (hardness / 100.0).clamp(0.0, 1.0);
     let reach = radius.ceil() as i32 + 1;
     let x0 = point.xy[0].floor() as i32;
     let y0 = point.xy[1].floor() as i32;
@@ -768,8 +776,11 @@ fn mix(dst: [f32; 4], src: [f32; 4], coverage: f32) -> [f32; 4] {
 }
 
 fn apply_alpha(stroke: &Stroke, output: &mut Raster) {
+    let Some(diameter) = stroke.diameter else {
+        return;
+    };
     for point in stamps(stroke) {
-        let radius = stroke.diameter * 0.5;
+        let radius = diameter * 0.5;
         let reach = radius.ceil() as i32 + 1;
         let x0 = point.xy[0].floor() as i32;
         let y0 = point.xy[1].floor() as i32;
@@ -799,8 +810,11 @@ fn apply_alpha(stroke: &Stroke, output: &mut Raster) {
 }
 
 fn erase(target: &mut Raster, stroke: &Stroke) {
+    let Some(diameter) = stroke.diameter else {
+        return;
+    };
     for point in stamps(stroke) {
-        let radius = stroke.diameter * 0.5;
+        let radius = diameter * 0.5;
         let reach = radius.ceil() as i32 + 1;
         let x0 = point.xy[0].floor() as i32;
         let y0 = point.xy[1].floor() as i32;
@@ -1094,9 +1108,9 @@ mod tests {
         paint.roundness = Some(50.0);
         paint.begin_stroke([8.0, 8.0], false);
         paint.end_stroke();
-        assert!(near(paint.strokes[0].roundness, 100.0, 1e-6));
-        assert!(near(paint.strokes[1].roundness, 0.0, 1e-6));
-        assert!(near(paint.strokes[2].roundness, 50.0, 1e-6));
+        assert!(near(paint.strokes[0].roundness.unwrap(), 100.0, 1e-6));
+        assert!(near(paint.strokes[1].roundness.unwrap(), 0.0, 1e-6));
+        assert!(near(paint.strokes[2].roundness.unwrap(), 50.0, 1e-6));
     }
 
     #[test]

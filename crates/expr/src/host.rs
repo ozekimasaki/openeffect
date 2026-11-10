@@ -427,7 +427,11 @@ fn member_comp(ctx: &Ctx<'_>, comp: model::ItemId, name: &str) -> Result<Value, 
             let fps = composition.frame_rate;
             Ok(Value::Number(if fps == 0.0 { 0.0 } else { 1.0 / fps }))
         }
-        "shutterAngle" => Ok(Value::Number(composition.motion_blur.shutter_angle_degrees)),
+        "shutterAngle" => composition
+            .motion_blur
+            .shutter_angle_degrees
+            .map(Value::Number)
+            .ok_or_else(|| "シャッター角度は要確認".to_string()),
         "shutterPhase" => Ok(Value::Number(composition.motion_blur.shutter_phase_degrees)),
         "pixelAspect" => Ok(Value::Number(composition.pixel_aspect)),
         "ntscDropFrame" => Ok(Value::Bool(

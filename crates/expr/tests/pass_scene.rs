@@ -74,7 +74,7 @@ fn comp_attributes() {
         .composition_mut(env.comp)
         .unwrap()
         .motion_blur
-        .shutter_angle_degrees = 180.0;
+        .shutter_angle_degrees = Some(180.0);
     env.scene
         .project
         .composition_mut(env.comp)

@@ -661,7 +661,7 @@ fn stretching_a_handle_changes_the_bulge() {
     left.temporal_out = TemporalInterpolation::Bezier;
     left.ease_out = KeyframeEase::new(80.0, 10.0);
     let small = sample_scalar(&[left.clone(), right.clone()], Time::from_seconds(0.25), 0.0);
-    left.ease_out.influence = 100.0;
+    left.ease_out.influence = Some(100.0);
     let large = sample_scalar(&[left, right], Time::from_seconds(0.25), 0.0);
     assert!((small - large).abs() > 1.0e-3);
 }
@@ -714,11 +714,11 @@ fn data_points_become_keys_at_the_same_times() {
 #[test]
 fn easy_ease_slows_both_sides() {
     let mut key = key_at(0.5, PropertyValue::Scalar(50.0));
-    let before_out = key.ease_out.speed;
     easy_ease(&mut key);
     assert_eq!(key.ease_in.speed, 0.0);
     assert_eq!(key.ease_out.speed, 0.0);
-    assert!(key.ease_out.influence > before_out);
+    assert_eq!(key.ease_in.influence, None);
+    assert_eq!(key.ease_out.influence, None);
 }
 
 #[test]
@@ -728,7 +728,7 @@ fn easy_ease_in_changes_only_the_incoming_side() {
     easy_ease_in(&mut key);
     assert_eq!(key.ease_in.speed, 0.0);
     assert_eq!(key.ease_out.speed, 12.0);
-    assert_eq!(key.ease_out.influence, 20.0);
+    assert_eq!(key.ease_out.influence, Some(20.0));
 }
 
 #[test]

@@ -114,7 +114,7 @@ pub struct CharacterStyle {
     pub kerning: Kerning,
     pub horizontal_scale: f64,
     pub vertical_scale: f64,
-    pub baseline_shift: f64,
+    pub baseline_shift: Option<f64>,
     pub all_caps: bool,
     pub small_caps: bool,
     pub superscript: bool,
@@ -145,7 +145,7 @@ impl CharacterStyle {
             kerning: Kerning::Metrics,
             horizontal_scale: 100.0,
             vertical_scale: 100.0,
-            baseline_shift: 0.0,
+            baseline_shift: None,
             all_caps: false,
             small_caps: false,
             superscript: false,
@@ -170,14 +170,14 @@ impl Default for CharacterStyle {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParagraphStyle {
     pub alignment: ParagraphAlignment,
-    pub left_indent: f64,
-    pub right_indent: f64,
-    pub first_line_indent: f64,
-    pub space_before: f64,
-    pub space_after: f64,
+    pub left_indent: Option<f64>,
+    pub right_indent: Option<f64>,
+    pub first_line_indent: Option<f64>,
+    pub space_before: Option<f64>,
+    pub space_after: Option<f64>,
     pub hanging_roman: bool,
     pub composer: Option<Composer>,
-    pub leading: f64,
+    pub leading: Option<f64>,
     pub leading_measure: Option<LeadingMeasure>,
     pub auto_leading: bool,
 }
@@ -186,14 +186,14 @@ impl ParagraphStyle {
     pub fn new() -> Self {
         Self {
             alignment: ParagraphAlignment::Left,
-            left_indent: 0.0,
-            right_indent: 0.0,
-            first_line_indent: 0.0,
-            space_before: 0.0,
-            space_after: 0.0,
+            left_indent: None,
+            right_indent: None,
+            first_line_indent: None,
+            space_before: None,
+            space_after: None,
             hanging_roman: false,
             composer: None,
-            leading: 0.0,
+            leading: None,
             leading_measure: None,
             auto_leading: false,
         }
@@ -544,9 +544,9 @@ pub fn apply_auto_leading(style: &mut ParagraphStyle) {
     style.auto_leading = true;
 }
 
-pub fn used_leading(style: &ParagraphStyle, font_size: f64) -> f64 {
+pub fn used_leading(style: &ParagraphStyle, font_size: f64) -> Option<f64> {
     if style.auto_leading {
-        font_size
+        Some(font_size)
     } else {
         style.leading
     }
@@ -1070,33 +1070,33 @@ pub enum SelectorBasedOn {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RangeSelector {
     pub mode: SelectorMode,
-    pub amount_percent: f64,
+    pub amount_percent: Option<f64>,
     pub unit: SelectorUnit,
     pub based_on: SelectorBasedOn,
-    pub start: f64,
-    pub end: f64,
-    pub offset: f64,
+    pub start: Option<f64>,
+    pub end: Option<f64>,
+    pub offset: Option<f64>,
     pub shape: SelectorShape,
-    pub ease_high: f64,
-    pub ease_low: f64,
+    pub ease_high: Option<f64>,
+    pub ease_low: Option<f64>,
     pub randomize: bool,
     pub seed: i32,
 }
 
 impl RangeSelector {
-    /// モードの初期値は加算。量・単位・開始・終了・形状・イーズの初期値は要確認。
+    /// モードの初期値は加算。開始、終了、量、オフセット、イーズの初期値は要確認。
     pub fn new() -> Self {
         Self {
             mode: SelectorMode::Add,
-            amount_percent: 0.0,
+            amount_percent: None,
             unit: SelectorUnit::Percent,
             based_on: SelectorBasedOn::Characters,
-            start: 0.0,
-            end: 100.0,
-            offset: 0.0,
+            start: None,
+            end: None,
+            offset: None,
             shape: SelectorShape::Square,
-            ease_high: 0.0,
-            ease_low: 0.0,
+            ease_high: None,
+            ease_low: None,
             randomize: false,
             seed: 0,
         }
@@ -1109,31 +1109,28 @@ impl Default for RangeSelector {
     }
 }
 
-pub fn range_influence(selector: &RangeSelector, index: usize, count: usize) -> f64 {
-    if selector.amount_percent == 0.0 && selector.mode == SelectorMode::Add {
-        return 0.0;
+pub fn range_influence(selector: &RangeSelector, index: usize, count: usize) -> Option<f64> {
+    let amount = selector.amount_percent?;
+    if amount == 0.0 && selector.mode == SelectorMode::Add {
+        return Some(0.0);
     }
+    let start = selector.start?;
+    let end = selector.end?;
     let t = if count == 0 {
         0.0
     } else {
         index as f64 / count as f64
     };
-    let shape = shape_weight(
-        selector.shape,
-        t,
-        selector.start / 100.0,
-        selector.end / 100.0,
-        selector.ease_high,
-    );
-    let scaled = shape * selector.amount_percent / 100.0;
-    match selector.mode {
+    let shape = shape_weight(selector.shape, t, start / 100.0, end / 100.0, selector.ease_high);
+    let scaled = shape * amount / 100.0;
+    Some(match selector.mode {
         SelectorMode::Add => scaled,
         SelectorMode::Subtract => 1.0 - scaled,
         SelectorMode::Intersect => scaled,
-    }
+    })
 }
 
-fn shape_weight(shape: SelectorShape, t: f64, start: f64, end: f64, ease_high: f64) -> f64 {
+fn shape_weight(shape: SelectorShape, t: f64, start: f64, end: f64, ease_high: Option<f64>) -> f64 {
     if end <= start {
         return 0.0;
     }
@@ -1144,6 +1141,9 @@ fn shape_weight(shape: SelectorShape, t: f64, start: f64, end: f64, ease_high: f
             if !inside {
                 return 0.0;
             }
+            let Some(ease_high) = ease_high else {
+                return 1.0;
+            };
             let gradual = ((ease_high + 100.0) / 200.0).clamp(0.0, 1.0);
             let knee = 1.0 - 0.5 * gradual;
             if local <= knee {
@@ -1746,15 +1746,12 @@ mod tests {
     #[test]
     fn auto_leading_shortcut_computes_from_size() {
         let mut style = ParagraphStyle::new();
-        style.leading = 30.0;
+        style.leading = Some(30.0);
         apply_auto_leading(&mut style);
         assert!(style.auto_leading);
-        assert!(near(style.leading, 30.0));
-        assert!(!near(
-            used_leading(&style, 12.0),
-            used_leading(&style, 18.0)
-        ));
-        assert!(!near(used_leading(&style, 12.0), style.leading));
+        assert!(near(style.leading.unwrap(), 30.0));
+        assert!(!near(used_leading(&style, 12.0).unwrap(), used_leading(&style, 18.0).unwrap()));
+        assert!(!near(used_leading(&style, 12.0).unwrap(), style.leading.unwrap()));
     }
 
     #[test]
@@ -2072,9 +2069,9 @@ mod tests {
     #[test]
     fn left_indent_moves_only_the_selected_paragraph() {
         let mut paragraphs = vec![ParagraphStyle::new(), ParagraphStyle::new()];
-        paragraphs[0].left_indent = 12.0;
-        assert!(near(line_start(paragraphs[0].left_indent, 0.0, 1), 12.0));
-        assert!(near(line_start(paragraphs[1].left_indent, 0.0, 1), 0.0));
+        paragraphs[0].left_indent = Some(12.0);
+        assert!(near(line_start(paragraphs[0].left_indent.unwrap(), 0.0, 1), 12.0));
+        assert!(paragraphs[1].left_indent.is_none());
         assert_eq!(
             alignment_edge(ParagraphAlignment::Left, TextOrientation::Vertical),
             AlignEdge::Start
@@ -2084,9 +2081,9 @@ mod tests {
     #[test]
     fn right_indent_insets_one_paragraph() {
         let mut paragraphs = vec![ParagraphStyle::new(), ParagraphStyle::new()];
-        paragraphs[1].right_indent = 8.0;
-        assert!(near(100.0 - paragraphs[1].right_indent, 92.0));
-        assert!(near(100.0 - paragraphs[0].right_indent, 100.0));
+        paragraphs[1].right_indent = Some(8.0);
+        assert!(near(100.0 - paragraphs[1].right_indent.unwrap(), 92.0));
+        assert!(paragraphs[0].right_indent.is_none());
     }
 
     #[test]
@@ -2100,17 +2097,17 @@ mod tests {
     #[test]
     fn space_before_opens_only_that_paragraph() {
         let mut paragraphs = vec![ParagraphStyle::new(), ParagraphStyle::new()];
-        paragraphs[1].space_before = 6.0;
-        assert!(near(paragraphs[1].space_before, 6.0));
-        assert!(near(paragraphs[0].space_before, 0.0));
+        paragraphs[1].space_before = Some(6.0);
+        assert!(near(paragraphs[1].space_before.unwrap(), 6.0));
+        assert!(paragraphs[0].space_before.is_none());
     }
 
     #[test]
     fn space_after_opens_only_after_that_paragraph() {
         let mut paragraphs = vec![ParagraphStyle::new(), ParagraphStyle::new()];
-        paragraphs[0].space_after = 5.0;
-        assert!(near(paragraphs[0].space_after, 5.0));
-        assert!(near(paragraphs[1].space_after, 0.0));
+        paragraphs[0].space_after = Some(5.0);
+        assert!(near(paragraphs[0].space_after.unwrap(), 5.0));
+        assert!(paragraphs[1].space_after.is_none());
     }
 
     #[test]
@@ -2174,14 +2171,16 @@ mod tests {
             panic!("range")
         };
         assert_eq!(range.mode, SelectorMode::Add);
+        assert!(range.amount_percent.is_none());
+        assert!(range.start.is_none() && range.end.is_none());
         let mut quiet = range.clone();
-        quiet.amount_percent = 0.0;
-        assert!(near(range_influence(&quiet, 0, 4), 0.0));
-        quiet.amount_percent = 50.0;
+        quiet.amount_percent = Some(0.0);
+        assert!(near(range_influence(&quiet, 0, 4).unwrap(), 0.0));
+        quiet.amount_percent = Some(50.0);
         quiet.shape = SelectorShape::Square;
-        quiet.start = 0.0;
-        quiet.end = 100.0;
-        assert!(near(range_influence(&quiet, 0, 4), 0.5));
+        quiet.start = Some(0.0);
+        quiet.end = Some(100.0);
+        assert!(near(range_influence(&quiet, 0, 4).unwrap(), 0.5));
         assert_eq!(SelectorShape::ALL.len(), 6);
         assert_eq!(selector_count("a b", SelectorBasedOn::Characters), 3);
         assert!(!animator.selectors.is_empty());

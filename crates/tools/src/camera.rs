@@ -231,6 +231,9 @@ impl CameraTracker {
         let method = self
             .method
             .ok_or_else(|| ToolError::new("解決方法は要確認のため未設定"))?;
+        if self.hfov.is_none() {
+            return Err(ToolError::new("水平視野角は要確認"));
+        }
         if self.observations.is_empty() {
             return Err(ToolError::new("トラック点がない"));
         }
@@ -475,7 +478,9 @@ fn solve_tripod(
     shot: ShotType,
     hfov: Option<f64>,
 ) -> (Vec<ScenePoint>, Vec<(i32, Pose)>) {
-    let base_fov = choose_fov(shot, hfov, 50.0);
+    let Some(base_fov) = choose_fov(shot, hfov) else {
+        return (Vec::new(), Vec::new());
+    };
     let frame0 = frames[0];
     let mut poses = Vec::new();
     let mut points = Vec::new();
@@ -502,7 +507,7 @@ fn solve_tripod(
     }
     for (index, frame) in frames.iter().enumerate() {
         let fov = if shot == ShotType::VariableZoom && index > 0 {
-            search_zoom_fov(&rays0, observations, *frame, width, height)
+            search_zoom_fov(&rays0, observations, *frame, width, height).unwrap_or(base_fov)
         } else {
             fov_for(shot, hfov, base_fov, index)
         };
@@ -568,7 +573,10 @@ fn solve_general(
     let (mut points, mut poses) =
         solve_tripod(observations, ids, frames, width, height, shot, hfov);
     let depth = 6.0;
-    let focal = focal_px(width, poses.first().map(|pose| pose.1.hfov).unwrap_or(50.0));
+    let Some(focal_pose) = poses.first().map(|pose| pose.1.hfov) else {
+        return (points, poses);
+    };
+    let focal = focal_px(width, focal_pose);
     for pose in &mut poses {
         let flow = median_flow(observations, frames[0], pose.0);
         pose.1.position = [-flow[0] / focal * depth, flow[1] / focal * depth, 0.0];
@@ -628,8 +636,8 @@ fn search_zoom_fov(
     frame: i32,
     width: f64,
     height: f64,
-) -> f64 {
-    let mut best_fov = 50.0;
+) -> Option<f64> {
+    let mut best_fov = None;
     let mut best_error = f64::MAX;
     let mut fov = 24.0;
     while fov <= 90.0 {
@@ -653,7 +661,7 @@ fn search_zoom_fov(
         }
         if error < best_error {
             best_error = error;
-            best_fov = fov;
+            best_fov = Some(fov);
         }
         fov += 1.0;
     }
@@ -679,11 +687,9 @@ fn world_ray(pose: &Pose, camera_ray: Vec3) -> Vec3 {
     normalize(mul_mat_vec(transpose(pose.rotation), camera_ray))
 }
 
-fn choose_fov(shot: ShotType, hfov: Option<f64>, fallback: f64) -> f64 {
-    match shot {
-        ShotType::SpecifiedHorizontalFov => hfov.unwrap_or(fallback),
-        ShotType::FixedHorizontalFov | ShotType::VariableZoom => hfov.unwrap_or(fallback),
-    }
+fn choose_fov(shot: ShotType, hfov: Option<f64>) -> Option<f64> {
+    let _ = shot;
+    hfov
 }
 
 fn fov_for(shot: ShotType, hfov: Option<f64>, base: f64, frame_index: usize) -> f64 {
@@ -691,8 +697,8 @@ fn fov_for(shot: ShotType, hfov: Option<f64>, base: f64, frame_index: usize) -> 
         ShotType::SpecifiedHorizontalFov => hfov.unwrap_or(base),
         ShotType::FixedHorizontalFov => base,
         ShotType::VariableZoom => {
-            let guess = base + frame_index as f64 * 4.0;
-            hfov.unwrap_or(guess)
+            let _ = frame_index;
+            base
         }
     }
 }
@@ -903,7 +909,7 @@ impl CameraTracker {
             .poses
             .first()
             .map(|pose| pose.1)
-            .unwrap_or(Pose::identity(50.0));
+            .ok_or_else(|| ToolError::new("水平視野角は要確認"))?;
         layer.properties.push(persist::point(
             ids,
             "位置",
@@ -982,7 +988,11 @@ impl CameraTracker {
                 .ok_or_else(|| ToolError::new("コンポジションがない"))?;
             self.create_solved_camera(comp, ids)?
         };
-        let size = self.target_size.unwrap_or(100.0).round().max(1.0) as u32;
+        let size = self
+            .target_size
+            .ok_or_else(|| ToolError::new("ターゲットサイズは要確認"))?
+            .round()
+            .max(1.0) as u32;
         let item = ids.item();
         let mut footage = Footage::file(item, "平面", size, size, Time::from_seconds(1.0), 24.0);
         footage.kind = FootageKind::Solid {
@@ -1159,6 +1169,7 @@ mod tests {
         let mut tracker = CameraTracker::new(160, 90);
         tracker.shot = Some(ShotType::FixedHorizontalFov);
         tracker.method = Some(SolveMethod::TripodPan);
+        tracker.hfov = Some(48.0);
         tracker.set_observations(observations.clone());
         (tracker, observations)
     }
@@ -1172,6 +1183,7 @@ mod tests {
         let mut tracker = CameraTracker::new(48, 32);
         tracker.shot = Some(ShotType::FixedHorizontalFov);
         tracker.method = Some(SolveMethod::TripodPan);
+        tracker.hfov = Some(48.0);
         tracker.analyze_frames(&[frame]).unwrap();
         assert!(tracker.solved);
         assert!(tracker.points.len() >= 3);
@@ -1234,6 +1246,7 @@ mod tests {
         let mut fixed = CameraTracker::new(160, 90);
         fixed.shot = Some(ShotType::FixedHorizontalFov);
         fixed.method = Some(SolveMethod::TripodPan);
+        fixed.hfov = Some(40.0);
         fixed.set_observations(observations);
         fixed.solve().unwrap();
         assert!(variable.average_error.unwrap() < fixed.average_error.unwrap());
@@ -1656,11 +1669,13 @@ mod tests {
         let mut general = CameraTracker::new(160, 90);
         general.shot = Some(ShotType::FixedHorizontalFov);
         general.method = Some(SolveMethod::General);
+        general.hfov = Some(50.0);
         general.set_observations(observations.clone());
         general.solve().unwrap();
         let mut tripod = CameraTracker::new(160, 90);
         tripod.shot = Some(ShotType::FixedHorizontalFov);
         tripod.method = Some(SolveMethod::TripodPan);
+        tripod.hfov = Some(50.0);
         tripod.set_observations(observations);
         tripod.solve().unwrap();
         assert!(
@@ -1691,11 +1706,13 @@ mod tests {
         let mut planar = CameraTracker::new(160, 90);
         planar.shot = Some(ShotType::FixedHorizontalFov);
         planar.method = Some(SolveMethod::MostlyPlanar);
+        planar.hfov = Some(46.0);
         planar.set_observations(observations.clone());
         planar.solve().unwrap();
         let mut general = CameraTracker::new(160, 90);
         general.shot = Some(ShotType::FixedHorizontalFov);
         general.method = Some(SolveMethod::General);
+        general.hfov = Some(46.0);
         general.set_observations(observations);
         general.solve().unwrap();
         assert!(
@@ -1766,11 +1783,13 @@ mod tests {
         let mut plain = CameraTracker::new(40, 30);
         plain.shot = Some(ShotType::FixedHorizontalFov);
         plain.method = Some(SolveMethod::TripodPan);
+        plain.hfov = Some(48.0);
         plain.detailed = Some(false);
         plain.analyze_frames(&[frame.clone()]).unwrap();
         let mut detailed = CameraTracker::new(40, 30);
         detailed.shot = Some(ShotType::FixedHorizontalFov);
         detailed.method = Some(SolveMethod::TripodPan);
+        detailed.hfov = Some(48.0);
         detailed.detailed = Some(true);
         detailed.analyze_frames(&[frame]).unwrap();
         assert!(detailed.points.len() > plain.points.len());

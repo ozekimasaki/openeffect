@@ -464,8 +464,10 @@ impl RotoBrush {
             matte = self.apply_edge(matte, frames[frame as usize].width);
         }
         if self.motion_blur == Some(true) {
+            let Some(angle) = self.shutter_angle else {
+                return matte;
+            };
             let samples = self.blur_samples.unwrap_or(1).max(1);
-            let angle = self.shutter_angle.unwrap_or(180.0);
             let spread = (angle / 180.0) * samples as f64;
             let _ = self.high_quality_blur;
             matte = blur_matte(&matte, frames[frame as usize].width, spread.max(1.0));

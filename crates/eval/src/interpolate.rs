@@ -37,10 +37,16 @@ fn bezier_value(left: &Keyframe, right: &Keyframe, time: Time, v0: f64, v1: f64)
         return v0;
     }
     let u = portion(left.time, right.time, time);
-    let out_inf = (left.ease_out.influence / 100.0).clamp(0.0, 1.0);
-    let in_inf = (right.ease_in.influence / 100.0).clamp(0.0, 1.0);
-    let p1 = v0 + left.ease_out.speed * dt * out_inf;
-    let p2 = v1 - right.ease_in.speed * dt * in_inf;
+    let out_inf = left.ease_out.influence.map(|value| (value / 100.0).clamp(0.0, 1.0));
+    let in_inf = right.ease_in.influence.map(|value| (value / 100.0).clamp(0.0, 1.0));
+    let p1 = match out_inf {
+        Some(out_inf) => v0 + left.ease_out.speed * dt * out_inf,
+        None => v0,
+    };
+    let p2 = match in_inf {
+        Some(in_inf) => v1 - right.ease_in.speed * dt * in_inf,
+        None => v1,
+    };
     cubic(v0, p1, p2, v1, u)
 }
 

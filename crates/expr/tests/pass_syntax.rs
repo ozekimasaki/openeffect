@@ -137,6 +137,14 @@ fn legacy_fails(bad: &str, good: &str) {
         PropertyValue::Scalar(1.0),
     );
     env.prop = good_prop;
+    if good == "shutterAngle" {
+        env.scene
+            .project
+            .composition_mut(env.comp)
+            .unwrap()
+            .motion_blur
+            .shutter_angle_degrees = Some(90.0);
+    }
     assert!(
         env.eval(good).is_ok(),
         "{good} should succeed: {:?}",
