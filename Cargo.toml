@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/model",
+    "crates/eval",
+    "crates/effect-api",
+    "crates/ui-api",
+    "crates/io-api",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
