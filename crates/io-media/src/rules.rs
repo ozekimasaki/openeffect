@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 /// 拡張子ごとの初期フレームレート。
-/// After Effects の 4 文字コード文法は要確認なので、OpenEffect は `拡張子 fps` の行を読む。
+/// 4 文字コード文法は要確認なので、OpenEffect は `拡張子 fps` の行を読む。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterpretationRules {
     frame_rates: BTreeMap<String, f64>,

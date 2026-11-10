@@ -1,4 +1,4 @@
-//! After Effects 互換の JavaScript 式。
+//! このコンポジタの JavaScript 式。
 //!
 //! 公開入口は [`Engine::evaluate`]。中身はこの環境では純 Rust 評価器。
 

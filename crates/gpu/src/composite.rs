@@ -141,7 +141,7 @@ fn sample_transformed(
     sample(frame, pixel_index(local_x), pixel_index(local_y))
 }
 
-/// 正の回転は時計回り。After Effects の向きに合わせる。
+/// 正の回転は時計回り。
 fn comp_to_local(x: f64, y: f64, transform: &Transform3d) -> Option<(f64, f64)> {
     let sx = transform.scale[0];
     let sy = transform.scale[1];
